@@ -4,7 +4,14 @@
 
 #### Getting started
 
-Make sure to use nodejs version 14.16.1 first. Then, start by installing global tools used for development. We use Truffle and ganache for development.
+Make sure to use nodejs version 14.16.1 first. 
+Then install dependencies : 
+
+```console
+npm install
+```
+
+Install global tools used for development. We use Truffle and ganache for development.
 
 ```console
 npm install -g ganache-cli truffle
