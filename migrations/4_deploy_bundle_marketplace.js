@@ -1,19 +1,12 @@
-const {
-  TREASURY_ADDRESS, 
-  PLATFORM_FEE,
-  PROXY_ADDRESS_TESTNET,
-  PROXY_ADDRESS_MAINNET // ProxyAdmin
-} = require('../migrations/constants');
+const { loadConfig, saveConfig } = require('../utils/configs');
+const configs = loadConfig();
 
-const ProxyAdmin = artifacts.require('ProxyAdmin');
 const BundleMarketplace = artifacts.require('FantomBundleMarketplace');
 const AdminUpgradeabilityProxyFactory = artifacts.require('AdminUpgradeabilityProxy');
 
 module.exports = async function (deployer) {
-  const ProxyAdminContract = await ProxyAdmin.deployed();
   // Use this instead of PROXY_ADRESS_MAINNET to avoid hardcoded addresses
-  // Testing only, not sure it works in production
-  const PROXY_ADMIN_ADDRESS = ProxyAdminContract.address;
+  const PROXY_ADMIN_ADDRESS = configs.PROXY_ADDRESS_MAINNET;
   console.log('PROXY_ADMIN_ADRESS at: ', PROXY_ADMIN_ADDRESS);
 
   // Deploy implementation of bundleMarketplace
@@ -33,13 +26,17 @@ module.exports = async function (deployer) {
     'Bundle Marketplace Proxy deployed at ',
     BundleMarketplaceProxyContract.address
   );
+  configs.BUNDLE_MARKETPLACE = BundleMarketplaceProxyContract.address;
 
   // Initialize a BundleMarketplaceContract but pointed at the proxy
   // so that the proxy forward the call to the implementation
   const ProxiedMarketplaceContract = await BundleMarketplace.at(
     BundleMarketplaceProxyContract.address
   );
-  await ProxiedMarketplaceContract.initialize(TREASURY_ADDRESS, PLATFORM_FEE);
+  await ProxiedMarketplaceContract.initialize(configs.TREASURY_ADDRESS, configs.PLATFORM_FEE);
   console.log('Bundle Marketplace Proxy initialized');
+  
+  // Persist configs
+  saveConfig(configs);
 }
 
