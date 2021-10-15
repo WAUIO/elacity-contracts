@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate-initial": "truffle migrate --reset --f 1 --to 12",
+    "migrate-update": "truffle migrate --reset --f 13",
     "installConfigs": "node postInstall",
     "postinstall": "npm run installConfigs"
   },

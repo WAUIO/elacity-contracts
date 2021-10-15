@@ -6,7 +6,7 @@ const AdminUpgradeabilityProxyFactory = artifacts.require('AdminUpgradeabilityPr
 
 module.exports = async function (deployer, network, accounts) {
   // First deploy the ProxyAdmin
-  await deployer.deploy(ProxyAdmin, {overwrite: false});
+  await deployer.deploy(ProxyAdmin);
   const proxyAdminContract = await ProxyAdmin.deployed();
 
   console.log('ProxyAdmin deployed to: ', proxyAdminContract.address);
