@@ -1,5 +1,5 @@
 const {loadConfig, saveConfig} = require('../utils/configs');
-const configs = loadConfig();
+const configs = loadConfig(true); // Pass populate flag to be sure that config file is generated
 const FNFT = artifacts.require("Artion");
 
 module.exports = async function (deployer, network, account) {
