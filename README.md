@@ -36,7 +36,7 @@ Also take note of the first address you see in the ganache screen as it is used 
 Then do the deployment like : 
 
 ```console
-truffle migrate
+npm run migrate-initial
 ```
 
 
