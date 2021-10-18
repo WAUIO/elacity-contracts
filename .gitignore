@@ -6,3 +6,4 @@ flatten/
 build/
 
 .env
+.secret
