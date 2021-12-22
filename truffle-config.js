@@ -42,9 +42,9 @@ module.exports = {
     // options below to some value.
     //
     development: {
-     host: "127.0.0.1",     // Localhost (default: none)
-     port: 8545,            // Standard Ethereum port (default: none)
-     network_id: "123456",       // Any network (default: none)
+      host: "127.0.0.1",     // Localhost (default: none)
+      port: 8545,            // Standard Ethereum port (default: none)
+      network_id: "38080",       // Any network (default: none)
     },
     // Another network with more advanced options...
     // advanced: {
@@ -68,6 +68,19 @@ module.exports = {
       networkCheckTimeout: 100000, // Avoid ESOCKETTIMEDOUT error for slow networks. COmment if you have quick network
       websockets: true
     },
+
+    elastos: {
+      provider: () => new HDWalletProvider(mnemonic, `wss://ropsten.infura.io/ws/v3/26f4a46701dd4819a4e2cda821dc8996`),
+      network_id: 20,       // Ropsten's id
+      gas: 6700000,        // Ropsten has a lower block limit than mainnet
+      gasPrice: 100 * 1000000000, // 100 Gwei
+      confirmations: 0,    // # of confs to wait between deployments. (default: 0)
+      timeoutBlocks: 60,  // # of blocks before a deployment times out  (minimum/default: 50)
+      skipDryRun: true,     // Skip dry run before migrations? (default: false for public nets )
+      networkCheckTimeout: 100000, // Avoid ESOCKETTIMEDOUT error for slow networks. COmment if you have quick network
+      websockets: true
+    },
+
     // Useful for private networks
     // private: {
     // provider: () => new HDWalletProvider(mnemonic, `https://network.io`),
@@ -87,11 +100,11 @@ module.exports = {
       version: "0.6.12",    // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       settings: {          // See the solidity docs for advice about optimization and evmVersion
-       optimizer: {
-         enabled: true,
-         runs: 200
-       },
-      //  evmVersion: "byzantium"
+        optimizer: {
+          enabled: true,
+          runs: 200
+        },
+        //  evmVersion: "byzantium"
       }
     }
   },
@@ -107,13 +120,13 @@ module.exports = {
   // $ truffle migrate --reset --compile-all
   //
   // db: {
-    // enabled: false,
-    // host: "127.0.0.1",
-    // adapter: {
-    //   name: "sqlite",
-    //   settings: {
-    //     directory: ".db"
-    //   }
-    // }
+  // enabled: false,
+  // host: "127.0.0.1",
+  // adapter: {
+  //   name: "sqlite",
+  //   settings: {
+  //     directory: ".db"
+  //   }
+  // }
   // }
 };

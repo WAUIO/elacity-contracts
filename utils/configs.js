@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT_PATH = path.resolve(path.join(__dirname, '../'));
 const CONFIG_PATH = path.resolve(path.join(ROOT_PATH, 'generated/config.json'));
-require('dotenv').config({path: path.resolve(path.join(ROOT_PATH, '.env'))});
+require('dotenv').config({ path: path.resolve(path.join(ROOT_PATH, '.env')) });
 
 const DEFAULT_CONFIG = {
   TREASURY_ADDRESS: process.env.TREASURY_ADDRESS || '',
@@ -39,7 +39,7 @@ function saveConfig(conf = {}) {
  * @param {boolean} populate // if true, will create file if not exists 
  * @returns {object} 
  */
-function loadConfig (populate = false) {
+function loadConfig(populate = false) {
   const fileExists = fs.existsSync(CONFIG_PATH);
   if (!fileExists && !populate) {
     throw new Error(`Config not found at path [${CONFIG_PATH}]`);
@@ -52,7 +52,7 @@ function loadConfig (populate = false) {
   }
 
   // Read file and returns the datas
-  const fileDatas = fs.readFileSync(CONFIG_PATH);
+  const fileDatas = fs.readFileSync(CONFIG_PATH, { encode: 'utf-8' });
 
   return JSON.parse(fileDatas);
 }

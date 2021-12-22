@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.6.12;
+pragma solidity >=0.6.12;
 
 import "@openzeppelin/contracts/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -606,7 +606,9 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 _tokenId,
         uint16 _royalty
     ) external {
-        require(_royalty <= 10000, "invalid royalty");
+        // @since https://wausolutions.atlassian.net/browse/ELACITY-124
+        // require(_royalty <= 10000, "invalid royalty");
+        require(_royalty <= 2000, "invalid royalty");
         require(_isFantomNFT(_nftAddress), "invalid nft address");
 
         _validOwner(_nftAddress, _tokenId, _msgSender(), 1);

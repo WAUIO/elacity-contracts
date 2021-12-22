@@ -9,7 +9,7 @@ async function main() {
   const NFTTradable = await ethers.getContractFactory('FantomNFTTradable');
   const nft = await NFTTradable.deploy(
     'Artion',
-    'ART',
+    'ELAC',
     AUCTION,
     MARKETPLACE,
     BUNDLE_MARKETPLACE,

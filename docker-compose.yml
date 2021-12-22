@@ -1,0 +1,22 @@
+version: "3"
+services:
+  ganache:
+    image: trufflesuite/ganache-cli:latest
+    ports:
+      - "8545:8545"
+    volumes:
+      - ./ganache-db:/data
+    # for startup
+    # command: "--db /data --accounts 10 --networkId 38080 --allowUnlimitedContractSize"
+    command: '--db /data --accounts 10 --networkId 38080 --allowUnlimitedContractSize -m "popular quit south source drastic tool cream debris panther pave increase armed"'
+
+  explorer:
+    image: jpoon/etherchain-light
+    volumes:
+      - ./etherchain-light.config.js:/usr/src/app/config.js
+    ports:
+      - "13000:3000"
+    environment:
+      RPC_LINK: http://ganache:8545
+    depends_on:
+      - ganache

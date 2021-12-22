@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.6.12;
+pragma solidity >=0.6.12;
 
 import "@openzeppelin/contracts/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -419,7 +419,9 @@ contract FantomBundleMarketplace is
             _msgSender(),
             _bundleID,
             _payToken,
-            IFantomMarketplace(addressRegistry.marketplace()).getPrice(_payToken),
+            IFantomMarketplace(addressRegistry.marketplace()).getPrice(
+                _payToken
+            ),
             price
         );
         emit OfferCanceled(_msgSender(), _bundleID);
@@ -522,7 +524,9 @@ contract FantomBundleMarketplace is
             _creator,
             _bundleID,
             address(offer.payToken),
-            IFantomMarketplace(addressRegistry.marketplace()).getPrice(address(offer.payToken)),
+            IFantomMarketplace(addressRegistry.marketplace()).getPrice(
+                address(offer.payToken)
+            ),
             offer.price
         );
         emit OfferCanceled(_creator, _bundleID);

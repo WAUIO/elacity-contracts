@@ -1,14 +1,14 @@
-const {loadConfig, saveConfig} = require('../utils/configs');
+const { loadConfig, saveConfig } = require('../utils/configs');
 const configs = loadConfig();
 
 const NFTTradable = artifacts.require('FantomNFTTradable');
 const NFTTradablePrivate = artifacts.require('FantomNFTTradablePrivate');
 
-module.exports = async function(deployer) {
+module.exports = async function (deployer) {
   await deployer.deploy(
     NFTTradable,
     'Artion',
-    'ART',
+    'ELAC',
     configs.AUCTION,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE,
