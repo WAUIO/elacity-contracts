@@ -44,7 +44,7 @@ module.exports = {
     development: {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 8545,            // Standard Ethereum port (default: none)
-      network_id: "38080",       // Any network (default: none)
+      network_id: "1640703386111",       // Any network (default: none)
     },
     // Another network with more advanced options...
     // advanced: {
@@ -70,7 +70,12 @@ module.exports = {
     },
 
     elastos: {
-      provider: () => new HDWalletProvider(mnemonic, `wss://ropsten.infura.io/ws/v3/26f4a46701dd4819a4e2cda821dc8996`),
+      provider: () => new HDWalletProvider({
+        mnemonic: {
+          phrase: mnemonic
+        },
+        providerOrUrl: 'https://api.elastos.io/eth',
+      }),
       network_id: 20,       // Ropsten's id
       gas: 6700000,        // Ropsten has a lower block limit than mainnet
       gasPrice: 100 * 1000000000, // 100 Gwei
