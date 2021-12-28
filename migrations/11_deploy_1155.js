@@ -1,15 +1,15 @@
-const {loadConfig, saveConfig} = require('../utils/configs');
+const { loadConfig, saveConfig } = require('../utils/configs');
 const configs = loadConfig();
 
 const ArtTradable = artifacts.require('FantomArtTradable');
 const ArtTradablePrivate = artifacts.require('FantomArtTradablePrivate');
 
-module.exports = async function(deployer) {
+module.exports = async function (deployer) {
   await deployer.deploy(
     ArtTradable,
     'FantomArt',
     'FART',
-    '20000000000000000000',
+    '200000000000000000',
     configs.TREASURY_ADDRESS,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE
@@ -22,7 +22,7 @@ module.exports = async function(deployer) {
     ArtTradablePrivate,
     'FantomArt',
     'FART',
-    '20000000000000000000',
+    '200000000000000000',
     configs.TREASURY_ADDRESS,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE

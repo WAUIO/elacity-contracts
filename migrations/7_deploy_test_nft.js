@@ -12,7 +12,7 @@ module.exports = async function (deployer) {
     configs.AUCTION,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE,
-    '10000000000000000000',
+    '200000000000000000',
     configs.TREASURY_ADDRESS
   );
   const NFTTradableImpl = await NFTTradable.deployed();
@@ -26,7 +26,7 @@ module.exports = async function (deployer) {
     configs.AUCTION,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE,
-    '10000000000000000000',
+    '200000000000000000',
     configs.TREASURY_ADDRESS
   );
   const NFTTradablePrivateImpl = await NFTTradablePrivate.deployed();
