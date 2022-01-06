@@ -27,7 +27,7 @@ module.exports = async function (deployer) {
     configs.TREASURY_ADDRESS,
     '1000000000000000000'
   );
-  const privateFactoryImpl = await Factory.deployed();
+  const privateFactoryImpl = await PrivateFactory.deployed();
   console.log('FantomNFTFactoryPrivate deployed to:', privateFactoryImpl.address);
   configs.PRIVATE_NFT_FACTORY = privateFactoryImpl.address;
 
