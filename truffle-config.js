@@ -19,9 +19,10 @@
  */
 
 const HDWalletProvider = require('@truffle/hdwallet-provider');
+const PrivateKeyProvider = require("truffle-privatekey-provider");
 //
 const fs = require('fs');
-const mnemonic = fs.readFileSync(".secret").toString().trim();
+const secret = fs.readFileSync(".secret").toString().trim();
 
 module.exports = {
   /**
@@ -44,7 +45,7 @@ module.exports = {
     development: {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 8545,            // Standard Ethereum port (default: none)
-      network_id: "1640703386111",       // Any network (default: none)
+      network_id: "1643219247234",       // Any network (default: none)
     },
     // Another network with more advanced options...
     // advanced: {
@@ -58,7 +59,12 @@ module.exports = {
     // Useful for deploying to a public network.
     // NB: It's important to wrap the provider as a function.
     ropsten: {
-      provider: () => new HDWalletProvider(mnemonic, `wss://ropsten.infura.io/ws/v3/26f4a46701dd4819a4e2cda821dc8996`),
+      provider: () => {
+        if (secret.match(/^0x/ig)) {
+          return new PrivateKeyProvider(secret, "https://ropsten.infura.io/v3/26f4a46701dd4819a4e2cda821dc8996");
+        }
+        return new HDWalletProvider(secret, `wss://ropsten.infura.io/ws/v3/26f4a46701dd4819a4e2cda821dc8996`)
+      },
       network_id: 3,       // Ropsten's id
       gas: 6700000,        // Ropsten has a lower block limit than mainnet
       gasPrice: 100 * 1000000000, // 100 Gwei
@@ -70,12 +76,18 @@ module.exports = {
     },
 
     elastos: {
-      provider: () => new HDWalletProvider({
-        mnemonic: {
-          phrase: mnemonic
-        },
-        providerOrUrl: 'https://api.elastos.io/eth',
-      }),
+      provider: () => {
+        if (secret.match(/^0x/ig)) {
+          return new PrivateKeyProvider(secret, "https://api.elastos.io/eth");
+        }
+
+        return new HDWalletProvider({
+          mnemonic: {
+            phrase: secret
+          },
+          providerOrUrl: 'https://api.elastos.io/eth',
+        })
+      },
       network_id: 20,       // Ropsten's id
       gas: 6700000,        // Ropsten has a lower block limit than mainnet
       gasPrice: 100 * 1000000000, // 100 Gwei
