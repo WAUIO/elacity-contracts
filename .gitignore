@@ -4,6 +4,7 @@ artifacts/
 publish/
 flatten/
 build/
+data/
 
 .env
 .secret
