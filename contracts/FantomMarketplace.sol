@@ -619,6 +619,28 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         royalties[_nftAddress][_tokenId] = _royalty;
     }
 
+    /// @notice Method for updating royalty
+    /// @param _nftAddress NFT contract address
+    /// @param _tokenId TokenId
+    /// @param _royalty Royalty
+    function updateRoyalty(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint16 _royalty
+    ) external {
+        require(_royalty <= 10000, "invalid royalty");
+        require(_isFantomNFT(_nftAddress), "invalid nft address");
+
+        _validOwner(_nftAddress, _tokenId, _msgSender(), 1);
+
+        require(
+            minters[_nftAddress][_tokenId] == _msgSender(),
+            "royalty update restricted to minter"
+        );
+
+        royalties[_nftAddress][_tokenId] = _royalty;
+    }
+
     /// @notice Method for setting royalty
     /// @param _nftAddress NFT contract address
     /// @param _royalty Royalty
