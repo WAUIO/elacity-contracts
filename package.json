@@ -33,10 +33,12 @@
   },
   "dependencies": {
     "@openzeppelin/contracts-ethereum-package": "^3.0.0",
+    "arg": "^5.0.1",
     "dotenv": "^10.0.0",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",
     "solidity-coverage": "^0.7.16",
-    "truffle-privatekey-provider": "^1.5.0"
+    "truffle-privatekey-provider": "^1.5.0",
+    "truffle-source-verify": "git+ssh://git@github.com/open-zhy/truffle-source-verify.git"
   }
 }

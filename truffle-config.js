@@ -22,9 +22,19 @@ const HDWalletProvider = require('@truffle/hdwallet-provider');
 const PrivateKeyProvider = require("truffle-privatekey-provider");
 //
 const fs = require('fs');
+const path = require('path');
 const secret = fs.readFileSync(".secret").toString().trim();
+require('dotenv').config({ path: path.resolve('.env') });
 
 module.exports = {
+  plugins: [
+    'truffle-source-verify'
+  ],
+  api_keys: {
+    etherscan: process.env.ETHSCAN_API_KEY,
+    escscan: process.env.ESCSCAN_API_KEY
+  },
+
   /**
    * Networks define how you connect to your ethereum client and let you set the
    * defaults web3 uses to send transactions. If you don't specify one truffle
