@@ -8,9 +8,9 @@ const { ZERO_ADDRESS } = constants
 
 const { expect } = require('chai')
 
-const FantomNifty = artifacts.require('FantomNifty')
+const FantomNifty = artifacts.require('MockERC721')
 
-contract('Core ERC721 tests for FantomNifty', function ([
+contract('Core ERC721 tests for MockERC721', function ([
   owner,
   minter,
   approved,
@@ -24,6 +24,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
 
   const firstTokenId = new BN('1')
   const secondTokenId = new BN('2')
+  const platformFee = new BN('20')
   const nonExistentTokenId = new BN('99')
 
   const RECEIVER_MAGIC_VALUE = '0x150b7a02'
@@ -31,7 +32,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
   const randomTokenURI = 'ipfs'
 
   beforeEach(async function () {
-    this.token = await FantomNifty.new({ from: owner })
+    this.token = await FantomNifty.new('0xFC00FACE00000000000000000000000000000000', platformFee, { from: owner })
   })
 
   describe('metadata', function () {
@@ -181,7 +182,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
       const shouldTransferTokensByUsers = function (transferFunction) {
         context('when called by the owner', function () {
           beforeEach(async function () {
-            ;({ logs } = await transferFunction.call(
+            ; ({ logs } = await transferFunction.call(
               this,
               owner,
               this.toWhom,
@@ -194,7 +195,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
 
         context('when called by the approved individual', function () {
           beforeEach(async function () {
-            ;({ logs } = await transferFunction.call(
+            ; ({ logs } = await transferFunction.call(
               this,
               owner,
               this.toWhom,
@@ -207,7 +208,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
 
         context('when called by the operator', function () {
           beforeEach(async function () {
-            ;({ logs } = await transferFunction.call(
+            ; ({ logs } = await transferFunction.call(
               this,
               owner,
               this.toWhom,
@@ -223,13 +224,13 @@ contract('Core ERC721 tests for FantomNifty', function ([
           function () {
             beforeEach(async function () {
               await this.token.approve(ZERO_ADDRESS, tokenId, { from: owner })
-              ;({ logs } = await transferFunction.call(
-                this,
-                owner,
-                this.toWhom,
-                tokenId,
-                { from: operator },
-              ))
+                ; ({ logs } = await transferFunction.call(
+                  this,
+                  owner,
+                  this.toWhom,
+                  tokenId,
+                  { from: operator },
+                ))
             })
             transferWasSuccessful({ owner, tokenId, approved: null })
           },
@@ -237,7 +238,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
 
         context('when sent to the owner', function () {
           beforeEach(async function () {
-            ;({ logs } = await transferFunction.call(
+            ; ({ logs } = await transferFunction.call(
               this,
               owner,
               owner,
@@ -413,7 +414,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
       context('when clearing approval', function () {
         context('when there was no prior approval', function () {
           beforeEach(async function () {
-            ;({ logs } = await this.token.approve(ZERO_ADDRESS, tokenId, {
+            ; ({ logs } = await this.token.approve(ZERO_ADDRESS, tokenId, {
               from: owner,
             }))
           })
@@ -425,9 +426,9 @@ contract('Core ERC721 tests for FantomNifty', function ([
         context('when there was a prior approval', function () {
           beforeEach(async function () {
             await this.token.approve(approved, tokenId, { from: owner })
-            ;({ logs } = await this.token.approve(ZERO_ADDRESS, tokenId, {
-              from: owner,
-            }))
+              ; ({ logs } = await this.token.approve(ZERO_ADDRESS, tokenId, {
+                from: owner,
+              }))
           })
 
           itClearsApproval()
@@ -438,7 +439,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
       context('when approving a non-zero address', function () {
         context('when there was no prior approval', function () {
           beforeEach(async function () {
-            ;({ logs } = await this.token.approve(approved, tokenId, {
+            ; ({ logs } = await this.token.approve(approved, tokenId, {
               from: owner,
             }))
           })
@@ -452,9 +453,9 @@ contract('Core ERC721 tests for FantomNifty', function ([
           function () {
             beforeEach(async function () {
               await this.token.approve(approved, tokenId, { from: owner })
-              ;({ logs } = await this.token.approve(approved, tokenId, {
-                from: owner,
-              }))
+                ; ({ logs } = await this.token.approve(approved, tokenId, {
+                  from: owner,
+                }))
             })
 
             itApproves(approved)
@@ -469,9 +470,9 @@ contract('Core ERC721 tests for FantomNifty', function ([
               await this.token.approve(anotherApproved, tokenId, {
                 from: owner,
               })
-              ;({ logs } = await this.token.approve(anotherApproved, tokenId, {
-                from: owner,
-              }))
+                ; ({ logs } = await this.token.approve(anotherApproved, tokenId, {
+                  from: owner,
+                }))
             })
 
             itApproves(anotherApproved)
@@ -517,9 +518,9 @@ contract('Core ERC721 tests for FantomNifty', function ([
       context('when the sender is an operator', function () {
         beforeEach(async function () {
           await this.token.setApprovalForAll(operator, true, { from: owner })
-          ;({ logs } = await this.token.approve(approved, tokenId, {
-            from: operator,
-          }))
+            ; ({ logs } = await this.token.approve(approved, tokenId, {
+              from: operator,
+            }))
         })
 
         itApproves(approved)
@@ -782,7 +783,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
 
     context('with minted token', async function () {
       beforeEach(async function () {
-        ;({ logs: this.logs } = await this.token.mint(owner, randomTokenURI, {
+        ; ({ logs: this.logs } = await this.token.mint(owner, randomTokenURI, {
           from: owner,
         }))
       })
@@ -830,7 +831,7 @@ contract('Core ERC721 tests for FantomNifty', function ([
 
       context('with burnt token', function () {
         beforeEach(async function () {
-          ;({ logs: this.logs } = await this.token.burn(firstTokenId))
+          ; ({ logs: this.logs } = await this.token.burn(firstTokenId))
         })
 
         it('emits a Transfer event', function () {

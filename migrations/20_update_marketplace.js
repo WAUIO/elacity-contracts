@@ -15,6 +15,6 @@ module.exports = async function (deployer, network, accounts) {
   console.log('Marketplace Proxy upgraded to new address');
 
 
-  await MarketplaceImpl.initialize(configs.TREASURY_ADDRESS, configs.PLATFORM_FEE);
+  await MarketplaceImpl.initialize(configs.TREASURY_ADDRESS, '20');
   console.log('Marketplace Proxy initialized');
 }

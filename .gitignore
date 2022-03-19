@@ -9,3 +9,4 @@ data/
 .env
 .secret
 .secret.*
+.openzeppelin/.session

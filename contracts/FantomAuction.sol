@@ -184,17 +184,23 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         _;
     }
 
+    modifier onlyNotContract() {
+        require(_msgSender() == tx.origin, "no contract permitted");
+        _;
+    }
+
     /// @notice Contract initializer
-    function initialize(address payable _platformFeeRecipient)
-        public
-        initializer
-    {
+    function initialize(
+        address payable _platformFeeRecipient,
+        uint256 _platformFee
+    ) public initializer {
         require(
             _platformFeeRecipient != address(0),
             "FantomAuction: Invalid Platform Fee Recipient"
         );
 
         platformFeeRecipient = _platformFeeRecipient;
+        platformFee = _platformFee;
         emit FantomAuctionContractDeployed();
 
         __Ownable_init();
@@ -263,6 +269,7 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         payable
         nonReentrant
         whenNotPaused
+        onlyNotContract
     {
         require(_msgSender().isContract() == false, "no contracts permitted");
 
@@ -291,11 +298,11 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         address _nftAddress,
         uint256 _tokenId,
         uint256 _bidAmount
-    ) external nonReentrant whenNotPaused {
-        require(_msgSender().isContract() == false, "no contracts permitted");
-
+    ) external nonReentrant whenNotPaused onlyNotContract {
         // Check the auction to see if this is a valid bid
         Auction memory auction = auctions[_nftAddress][_tokenId];
+
+        require(auction.endTime > 0, "No auction exists");
 
         // Ensure auction is in flight
         require(

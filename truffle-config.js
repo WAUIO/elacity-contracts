@@ -55,19 +55,20 @@ module.exports = {
     development: {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 8545,            // Standard Ethereum port (default: none)
-      network_id: "1643219247234",       // Any network (default: none)
+      network_id: "*",       // Any network (default: none)
+      from: '0xaB5028bDBB0826AD6F1885478E421dB677b0001A',
     },
-    // Another network with more advanced options...
-    // advanced: {
-    // port: 8777,             // Custom port
-    // network_id: 1342,       // Custom network
-    // gas: 8500000,           // Gas sent with each transaction (default: ~6700000)
-    // gasPrice: 20000000000,  // 20 gwei (in wei) (default: 100 gwei)
-    // from: <address>,        // Account to send txs from (default: accounts[0])
-    // websocket: true        // Enable EventEmitter interface for web3 (default: false)
-    // },
-    // Useful for deploying to a public network.
-    // NB: It's important to wrap the provider as a function.
+    ganache: {
+      host: "127.0.0.1",
+      port: 7545,
+      network_id: 5777,
+    },
+    // before using this networ, run `npx truffle develop --log`
+    develop: {
+      host: "127.0.0.1",
+      port: 9545,
+      network_id: 5777,
+    },
     ropsten: {
       provider: () => {
         if (secret.match(/^0x/ig)) {
@@ -119,6 +120,9 @@ module.exports = {
   // Set default mocha options here, use special reporters etc.
   mocha: {
     // timeout: 100000
+    debug: false,
+    fullTrace: true,
+    file: "./test/**/*.test.js"
   },
 
   // Configure your compilers
@@ -131,7 +135,7 @@ module.exports = {
           enabled: true,
           runs: 200
         },
-        //  evmVersion: "byzantium"
+        // evmVersion: "byzantium"
       }
     }
   },

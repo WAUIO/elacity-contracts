@@ -29,15 +29,15 @@ module.exports = async function (deployer, network, accounts) {
   const MarketplaceProxyContract = await AdminUpgradeabilityProxyFactory.deployed();
   console.log('Marketplace Proxy deployed to: ', MarketplaceProxyContract.address);
   configs.MARKETPLACE = MarketplaceProxyContract.address;
-  
+
   // Get a new contract for marketplace so that it has all correct ABI
   // but point it to the proxy so that it proxies the queries
   const MarketplaceProxyContractWithAbi = await Marketplace.at(MarketplaceProxyContract.address);
-  
+
   // Init marketPlace contract with treasury address and platform fee
-  await MarketplaceProxyContractWithAbi.initialize(configs.TREASURY_ADDRESS, configs.PLATFORM_FEE);
+  await MarketplaceProxyContractWithAbi.initialize(configs.TREASURY_ADDRESS, '20');
   console.log('Marketplace Proxy initialized');
-  
+
   // Persist configs
   saveConfig(configs);
 }

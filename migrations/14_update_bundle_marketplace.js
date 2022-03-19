@@ -20,7 +20,7 @@ module.exports = async function (deployer) {
   await AdminProxyImpl.upgrade(configs.BUNDLE_MARKETPLACE, BundleMarketplaceContract.address);
   console.log('Marketplace proxy upgraded to new address');
 
-  await BundleMarketplaceContract.initialize(configs.TREASURY_ADDRESS, configs.PLATFORM_FEE);
-  console.log('Bundle Marketplace Proxy initialized');  
+  await BundleMarketplaceContract.initialize(configs.TREASURY_ADDRESS, '20');
+  console.log('Bundle Marketplace Proxy initialized');
 }
 

@@ -1,4 +1,4 @@
-require('dotenv').config({path:'../.env'});
+require('dotenv').config({ path: '../.env' });
 
 module.exports = {
   TREASURY_ADDRESS: process.env.TREASURY_ADDRESS,
@@ -10,5 +10,5 @@ module.exports = {
   FANTOM_ADDRESS_REGISTRY: '0xf5418F4c04c99d100cE1211338c9582b00DD2859',
   WRAPPED_FTM_MAINNET: '0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83',
   WRAPPED_FTM_TESTNET: '0xf1277d1ed8ad466beddf92ef448a132661956621',
-  PLATFORM_FEE: '0',
+  PLATFORM_FEE: '20',
 };

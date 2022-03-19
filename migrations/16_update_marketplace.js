@@ -13,8 +13,8 @@ module.exports = async function (deployer, network, accounts) {
   const ProxyAdminImpl = await ProxyAdmin.at(configs.PROXY_ADDRESS_MAINNET);
   await ProxyAdminImpl.upgrade(configs.MARKETPLACE, MarketplaceImpl.address);
   console.log('Marketplace Proxy upgraded to new address');
-  
-  
-  await MarketplaceImpl.initialize(configs.TREASURY_ADDRESS, configs.PLATFORM_FEE);
-  console.log('Marketplace Proxy initialized');  
+
+
+  await MarketplaceImpl.initialize(configs.TREASURY_ADDRESS, '20');
+  console.log('Marketplace Proxy initialized');
 }

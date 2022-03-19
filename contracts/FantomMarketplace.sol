@@ -770,7 +770,7 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         return block.timestamp;
     }
 
-    function _validPayToken(address _payToken) internal {
+    function _validPayToken(address _payToken) internal view {
         require(
             _payToken == address(0) ||
                 (addressRegistry.tokenRegistry() != address(0) &&
@@ -785,7 +785,7 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 _tokenId,
         address _owner,
         uint256 quantity
-    ) internal {
+    ) internal view {
         if (IERC165(_nftAddress).supportsInterface(INTERFACE_ID_ERC721)) {
             IERC721 nft = IERC721(_nftAddress);
             require(nft.ownerOf(_tokenId) == _owner, "not owning item");

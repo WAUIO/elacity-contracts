@@ -1,4 +1,4 @@
-const {loadConfig, saveConfig} = require('../utils/configs');
+const { loadConfig, saveConfig } = require('../utils/configs');
 const configs = loadConfig();
 
 const Auction = artifacts.require('FantomAuction');
@@ -28,7 +28,7 @@ module.exports = async function (deployer) {
   // so that the proxy address forwards the calls
   // if we don't use the auction ABI, `initialize` is not available on the object
   const prroxiedAuctionImpl = await Auction.at(auctionProxyImpl.address);
-  prroxiedAuctionImpl.initialize(configs.TREASURY_ADDRESS);
+  prroxiedAuctionImpl.initialize(configs.TREASURY_ADDRESS, '20');
   console.log('Auction Proxy initialized');
 
   // Persist configs

@@ -33,9 +33,9 @@ module.exports = async function (deployer) {
   const ProxiedMarketplaceContract = await BundleMarketplace.at(
     BundleMarketplaceProxyContract.address
   );
-  await ProxiedMarketplaceContract.initialize(configs.TREASURY_ADDRESS, configs.PLATFORM_FEE);
+  await ProxiedMarketplaceContract.initialize(configs.TREASURY_ADDRESS, '20');
   console.log('Bundle Marketplace Proxy initialized');
-  
+
   // Persist configs
   saveConfig(configs);
 }
