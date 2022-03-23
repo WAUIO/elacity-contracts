@@ -240,6 +240,22 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         _;
     }
 
+    /// v1.2 Additional tweaks
+    event NFTRoyaltySet(
+        address by,
+        address nftAddress,
+        uint256 tokenId,
+        uint16 royalty
+    );
+
+    event CollectionRoyaltySet(
+        address by,
+        address nftAddress,
+        address creator,
+        address feeRecipient,
+        uint16 royalty
+    );
+
     /// @notice Contract initializer
     function initialize(address payable _feeRecipient, uint16 _platformFee)
         public
@@ -606,7 +622,7 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 _tokenId,
         uint16 _royalty
     ) external {
-        require(_royalty <= 10000, "invalid royalty");
+        require(_royalty <= 2000, "invalid royalty");
         require(_isFantomNFT(_nftAddress), "invalid nft address");
 
         _validOwner(_nftAddress, _tokenId, _msgSender(), 1);
@@ -617,6 +633,8 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         );
         minters[_nftAddress][_tokenId] = _msgSender();
         royalties[_nftAddress][_tokenId] = _royalty;
+
+        emit NFTRoyaltySet(_msgSender(), _nftAddress, _tokenId, _royalty);
     }
 
     /// @notice Method for updating royalty
@@ -628,7 +646,7 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 _tokenId,
         uint16 _royalty
     ) external {
-        require(_royalty <= 10000, "invalid royalty");
+        require(_royalty <= 2000, "invalid royalty");
         require(_isFantomNFT(_nftAddress), "invalid nft address");
 
         require(
@@ -637,6 +655,8 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         );
 
         royalties[_nftAddress][_tokenId] = _royalty;
+
+        emit NFTRoyaltySet(_msgSender(), _nftAddress, _tokenId, _royalty);
     }
 
     /// @notice Method for setting royalty
@@ -649,7 +669,7 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         address _feeRecipient
     ) external onlyOwner {
         require(_creator != address(0), "invalid creator address");
-        require(_royalty <= 10000, "invalid royalty");
+        require(_royalty <= 2000, "invalid royalty");
         require(
             _royalty == 0 || _feeRecipient != address(0),
             "invalid fee recipient address"
@@ -671,6 +691,14 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
             collectionRoyalty.feeRecipient = _feeRecipient;
             collectionRoyalty.creator = _creator;
         }
+
+        emit CollectionRoyaltySet(
+            _msgSender(),
+            _nftAddress,
+            _creator,
+            _feeRecipient,
+            _royalty
+        );
     }
 
     function _isFantomNFT(address _nftAddress) internal view returns (bool) {
