@@ -6,6 +6,7 @@ const {
   constants,
   ether,
 } = require('@openzeppelin/test-helpers');
+const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants');
 
 const { expect } = require('chai');
 
@@ -61,35 +62,25 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
     );
   }
 
-  const successfullListItem = async function () {
+  const successfullListItem = async function (payToken) {
     await this.nft.setApprovalForAll(this.marketplace.address, true, { from: minter });
     const startingTime = new BN(-30 + Math.floor((new Date()).getTime() / 1000));
-    const result = await this.marketplace.listItem(
+    return this.marketplace.listItem(
       this.nft.address,
       this.tokenId1,
       '1',
-      this.payToken.address,
+      payToken,
       pricePerItem,
       startingTime,
       { from: minter }
     );
-
-    expectEvent(result, 'ItemListed', {
-      owner: minter,
-      nft: this.nft.address,
-      tokenId: this.tokenId1,
-      quantity: '1',
-      payToken: this.payToken.address,
-      pricePerItem,
-      startingTime,
-    });
   }
 
-  const successfullCreateOffer = function () {
+  const successfullCreateOffer = function (payToken) {
     return this.marketplace.createOffer(
       this.nft.address,
       this.tokenId1,
-      this.payToken.address,
+      payToken,
       '1',
       pricePerItem,
       Math.floor(3600 + (new Date()).getTime() / 1000),
@@ -138,11 +129,39 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
       );
     });
 
-    it('successfuly lists item', successfullListItem)
+    describe('successfuly lists item', function () {
+      it('using ERC20', async function () {
+        const receipt = await successfullListItem.call(this, this.payToken.address)
+
+        expectEvent(receipt, 'ItemListed', {
+          owner: minter,
+          nft: this.nft.address,
+          tokenId: this.tokenId1,
+          quantity: '1',
+          payToken: this.payToken.address,
+          pricePerItem,
+        });
+      });
+
+      it('using native token', async function () {
+        const receipt = await successfullListItem.call(this, ZERO_ADDRESS)
+
+        expectEvent(receipt, 'ItemListed', {
+          owner: minter,
+          nft: this.nft.address,
+          tokenId: this.tokenId1,
+          quantity: '1',
+          payToken: ZERO_ADDRESS,
+          pricePerItem,
+        });
+      })
+    })
   });
 
   describe('Canceling Item', async function () {
-    beforeEach(successfullListItem);
+    beforeEach(async function () {
+      await successfullListItem.call(this, this.payToken.address)
+    });
 
     it('reverts when item is not listed', async function () {
       await expectRevert(
@@ -180,7 +199,9 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
 
 
   describe('Updating Item Price', function () {
-    beforeEach(successfullListItem);
+    beforeEach(async function () {
+      await successfullListItem.call(this, this.payToken.address)
+    });
 
     it('reverts when item is not listed', async function () {
       await expectRevert(
@@ -211,14 +232,26 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
       );
     });
 
-    it('successfully update the item', async function () {
-      await this.marketplace.updateListing(
-        this.nft.address,
-        this.tokenId1,
-        this.payToken.address,
-        newPrice,
-        { from: minter }
-      );
+    describe('successfully update the item', function () {
+      it('using ERC20', async function () {
+        await this.marketplace.updateListing(
+          this.nft.address,
+          this.tokenId1,
+          this.payToken.address,
+          newPrice,
+          { from: minter }
+        );
+      })
+
+      it('using Native token', async function () {
+        await this.marketplace.updateListing(
+          this.nft.address,
+          this.tokenId1,
+          ZERO_ADDRESS,
+          newPrice,
+          { from: minter }
+        );
+      })
     })
   });
 
@@ -437,12 +470,14 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
   });
 
   describe('Buying Item', function () {
-    beforeEach(successfullListItem);
+    beforeEach(async function () {
+      await successfullListItem.call(this, this.payToken.address)
+    });
 
     it('reverts when owner is no more owning the item', async function () {
       await this.nft.safeTransferFrom(minter, owner, this.tokenId1, { from: minter });
       await expectRevert(
-        this.marketplace.buyItem(
+        this.marketplace.methods['buyItem(address,uint256,address,address)'](
           this.nft.address,
           this.tokenId1,
           this.payToken.address,
@@ -455,7 +490,7 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
 
     it('reverts when the amount is not enough', async function () {
       await expectRevert(
-        this.marketplace.buyItem(
+        this.marketplace.methods['buyItem(address,uint256,address,address)'](
           this.nft.address,
           this.tokenId1,
           this.payToken.address,
@@ -463,6 +498,19 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
           { from: anyOne }
         ),
         "ERC20: transfer amount exceeds balance"
+      );
+    });
+
+    it('reverts when purchasing with another token than the one set by seller', async function () {
+      await expectRevert(
+        this.marketplace.methods['buyItem(address,uint256,address,address)'](
+          this.nft.address,
+          this.tokenId1,
+          this.invalidPayToken.address,
+          minter,
+          { from: buyer }
+        ),
+        "invalid pay token"
       );
     });
 
@@ -479,7 +527,7 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
         { from: owner }
       );
       await expectRevert(
-        this.marketplace.buyItem(
+        this.marketplace.methods['buyItem(address,uint256,address,address)'](
           this.nft.address,
           this.tokenId2,
           this.payToken.address,
@@ -490,49 +538,58 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
       );
     });
 
-    it('successfully purchase item, then emit ItemSold event', async function () {
-      await fillWallet.call(this, buyer, pricePerItem);
-      // console.log({
-      //   mk: this.marketplace.address,
-      //   bundle: this.bundleMarketplace.address,
-      //   nft: this.nft.address,
-      //   pay: this.payToken.address,
-      //   feed: this.priceFeed.address,
-      //   registry: {
-      //     tk: this.tokenRegistry.address,
-      //     addr: this.addressRegistry.address,
-      //   },
-      //   owner,
-      //   minter,
-      //   buyer,
-      //   tokenId: this.tokenId1.toString()
-      // });
+    describe('successfully purchase item, then emit ItemSold event', function () {
+      it('with ERC20 token', async function () {
+        await fillWallet.call(this, buyer, pricePerItem);
+        const receipt = await this.marketplace.methods['buyItem(address,uint256,address,address)'](
+          this.nft.address,
+          this.tokenId1,
+          this.payToken.address,
+          minter,
+          { from: buyer }
+        );
 
-      // console.log(`let registry = await FantomAddressRegistry.at("${this.addressRegistry.address}");`)
-      // console.log(`let tkr = await FantomTokenRegistry.at("${this.tokenRegistry.address}");`)
-      // console.log(`let pay = await MockERC20.at("${this.payToken.address}");`)
-      // console.log(`await pay.approve("${this.marketplace.address}", "${(pricePerItem * 5).toString()}", {from: "${buyer}"});`)
-      // console.log(`let mk = await FantomMarketplace.at("${this.marketplace.address}");`)
-      // console.log(`await mk.buyItem("${this.nft.address}", ${this.tokenId1.toString()}, "${this.payToken.address}", "${minter}", {from: "${buyer}"});`)
-      // console.log(`await mk.registerRoyalty("${this.nft.address}", ${this.tokenId1.toString()}, 1000, {from: "${minter}"});`)
-      const receipt = await this.marketplace.buyItem(
-        this.nft.address,
-        this.tokenId1,
-        this.payToken.address,
-        minter,
-        { from: buyer }
-      );
+        expectEvent(receipt, 'ItemSold', {
+          seller: minter,
+          buyer,
+          nft: this.nft.address,
+          tokenId: this.tokenId1,
+          quantity: new BN('1'),
+          // no consideration of `getPrice` which should return 0 at this stage, no oracle set for payToken
+          unitPrice: new BN('0'),
+          pricePerItem: ether('1')
+        });
+      })
 
-      expectEvent(receipt, 'ItemSold', {
-        seller: minter,
-        buyer,
-        nft: this.nft.address,
-        tokenId: this.tokenId1,
-        quantity: new BN('1'),
-        // no consideration of `getPrice` which should return 0 at this stage, no oracle set for payToken
-        unitPrice: new BN('0'),
-        pricePerItem: ether('1')
-      });
+      it.skip('with Native token', async function () {
+        await this.marketplace.updateListing(
+          this.nft.address,
+          this.tokenId1,
+          ZERO_ADDRESS,
+          pricePerItem,
+          { from: minter }
+        );
+        const receipt = await this.marketplace.methods['buyItem(address,uint256,address)'](
+          this.nft.address,
+          this.tokenId1,
+          minter,
+          {
+            value: pricePerItem,
+            from: buyer
+          }
+        );
+
+        expectEvent(receipt, 'ItemSold', {
+          seller: minter,
+          buyer,
+          nft: this.nft.address,
+          tokenId: this.tokenId1,
+          quantity: new BN('1'),
+          // no consideration of `getPrice` which should return 0 at this stage, no oracle set for payToken
+          unitPrice: new BN('0'),
+          pricePerItem: ether('1')
+        });
+      })
     })
   });
 
@@ -599,21 +656,36 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
       )
     })
 
-    it('successfully create offer, OfferCreated event should be emitted', async function () {
-      const receipt = await successfullCreateOffer.call(this);
+    describe('successfully create offer, OfferCreated event should be emitted', function () {
+      it('using ERC20', async function () {
+        const receipt = await successfullCreateOffer.call(this, this.payToken.address);
 
-      expectEvent(receipt, 'OfferCreated', {
-        creator: buyer,
-        nft: this.nft.address,
-        tokenId: this.tokenId1,
-        quantity: new BN('1'),
-        payToken: this.payToken.address,
-        pricePerItem,
-      })
-    });
+        expectEvent(receipt, 'OfferCreated', {
+          creator: buyer,
+          nft: this.nft.address,
+          tokenId: this.tokenId1,
+          quantity: new BN('1'),
+          payToken: this.payToken.address,
+          pricePerItem,
+        })
+      });
+
+      it('using Native token', async function () {
+        const receipt = await successfullCreateOffer.call(this, ZERO_ADDRESS);
+
+        expectEvent(receipt, 'OfferCreated', {
+          creator: buyer,
+          nft: this.nft.address,
+          tokenId: this.tokenId1,
+          quantity: new BN('1'),
+          payToken: ZERO_ADDRESS,
+          pricePerItem,
+        })
+      });
+    })
 
     it('reverts when offer has already been created', async function () {
-      await successfullCreateOffer.call(this);
+      await successfullCreateOffer.call(this, this.payToken.address);
       await expectRevert(
         this.marketplace.createOffer(
           this.nft.address,
@@ -630,7 +702,9 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
   });
 
   describe('Cancel offer', function () {
-    beforeEach(successfullCreateOffer);
+    beforeEach(async function () {
+      await successfullCreateOffer.call(this, this.payToken.address);
+    });
 
     it('reverts when no offer yet', async function () {
       await expectRevert(
@@ -659,7 +733,9 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
   });
 
   describe('Accept offer', function () {
-    beforeEach(successfullCreateOffer);
+    beforeEach(async function () {
+      await successfullCreateOffer.call(this, this.payToken.address);
+    });
 
     it('reverts when no offer yet', async function () {
       await expectRevert(

@@ -364,6 +364,26 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         );
     }
 
+    /// @notice Methdod to process a payment
+    /// @param _payToken the token address to pay with
+    /// @param recipient the payee recipient
+    /// @param amount the amunt to pay
+    function _pay(
+        address _payToken,
+        address recipient,
+        uint256 amount
+    ) private returns (bool) {
+        if (_payToken == address(0)) {
+            // payment with native token
+            (bool succeeded, ) = payable(msg.sender).call{value: amount}("");
+            return succeeded;
+        } else {
+            // payment with ERC20
+            IERC20(_payToken).safeTransferFrom(_msgSender(), recipient, amount);
+            return true;
+        }
+    }
+
     /// @notice Method for buying listed NFT
     /// @param _nftAddress NFT contract address
     /// @param _tokenId TokenId
@@ -384,6 +404,31 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         _buyItem(_nftAddress, _tokenId, _payToken, _owner);
     }
 
+    /// @notice Method for buying listed NFT (using Native token)
+    /// @param _nftAddress NFT contract address
+    /// @param _tokenId TokenId
+    /// @param _tokenId TokenId
+    function buyItem(
+        address _nftAddress,
+        uint256 _tokenId,
+        address _owner
+    )
+        external
+        payable
+        nonReentrant
+        isListed(_nftAddress, _tokenId, _owner)
+        validListing(_nftAddress, _tokenId, _owner)
+    {
+        Listing memory listedItem = listings[_nftAddress][_tokenId][_owner];
+        require(listedItem.payToken == address(0), "invalid pay token");
+        require(
+            msg.value >= listedItem.pricePerItem.mul(listedItem.quantity),
+            "insufficient balance"
+        );
+
+        _buyItem(_nftAddress, _tokenId, address(0), _owner);
+    }
+
     function _buyItem(
         address _nftAddress,
         uint256 _tokenId,
@@ -395,11 +440,7 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 price = listedItem.pricePerItem.mul(listedItem.quantity);
         uint256 feeAmount = price.mul(platformFee).div(1e3);
 
-        IERC20(_payToken).safeTransferFrom(
-            _msgSender(),
-            feeReceipient,
-            feeAmount
-        );
+        require(_pay(_payToken, feeReceipient, feeAmount), "failed to pay fee");
 
         address minter = minters[_nftAddress][_tokenId];
         uint16 royalty = royalties[_nftAddress][_tokenId];
