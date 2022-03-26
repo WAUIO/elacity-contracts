@@ -77,7 +77,7 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
   }
 
   const successfullCreateOffer = function (payToken) {
-    return this.marketplace.createOffer(
+    return this.marketplace.methods['createOffer(address,uint256,address,uint256,uint256,uint256)'](
       this.nft.address,
       this.tokenId1,
       payToken,
@@ -561,7 +561,10 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
         });
       })
 
-      it.skip('with Native token', async function () {
+      it('with Native token', async function () {
+        const feeTracker = await balance.tracker(feeRecipient, 'ether');
+        const sellerTracker = await balance.tracker(minter, 'ether');
+
         await this.marketplace.updateListing(
           this.nft.address,
           this.tokenId1,
@@ -569,6 +572,9 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
           pricePerItem,
           { from: minter }
         );
+
+        await sellerTracker.get();
+
         const receipt = await this.marketplace.methods['buyItem(address,uint256,address)'](
           this.nft.address,
           this.tokenId1,
@@ -589,6 +595,9 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
           unitPrice: new BN('0'),
           pricePerItem: ether('1')
         });
+
+        expect(await feeTracker.delta()).to.be.bignumber.equal('0.02');
+        expect(await sellerTracker.delta()).to.be.bignumber.equal('0.98');
       })
     })
   });
@@ -596,7 +605,7 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
   describe('Create offer', function () {
     it('reverts when deadline is past', async function () {
       await expectRevert(
-        this.marketplace.createOffer(
+        this.marketplace.methods['createOffer(address,uint256,address,uint256,uint256,uint256)'](
           this.nft.address,
           this.tokenId1,
           this.payToken.address,
@@ -611,7 +620,7 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
 
     it('reverts when trying to use an invalid pay token', async function () {
       await expectRevert(
-        this.marketplace.createOffer(
+        this.marketplace.methods['createOffer(address,uint256,address,uint256,uint256,uint256)'](
           this.nft.address,
           this.tokenId1,
           this.invalidPayToken.address,
@@ -643,7 +652,7 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
       await waitFor(2500);
 
       await expectRevert(
-        this.marketplace.createOffer(
+        this.marketplace.methods['createOffer(address,uint256,address,uint256,uint256,uint256)'](
           this.nft.address,
           this.tokenId1,
           this.payToken.address,
@@ -670,15 +679,30 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
         })
       });
 
-      it('using Native token', async function () {
-        const receipt = await successfullCreateOffer.call(this, ZERO_ADDRESS);
+      it('using Native token (bundling swap ETH -> wETH)', async function () {
+        const contractTracker = await balance.tracker(this.marketplace.address, 'ether');
+        const wETHTracker = await balance.tracker(this.wETH.address, 'ether');
+
+        const receipt = await this.marketplace.methods['createOffer(address,uint256,uint256,uint256)'](
+          this.nft.address,
+          this.tokenId1,
+          '1',
+          Math.floor(3600 + (new Date()).getTime() / 1000),
+          {
+            value: pricePerItem,
+            from: buyer,
+          }
+        );
+
+        expect(await contractTracker.delta(), 'marketplace contract shouldn\'t hold any ETH').to.be.bignumber.equal('0');
+        expect(await wETHTracker.delta(), 'fund should be moved into wETH contract').to.be.bignumber.equal('1');
 
         expectEvent(receipt, 'OfferCreated', {
           creator: buyer,
           nft: this.nft.address,
           tokenId: this.tokenId1,
           quantity: new BN('1'),
-          payToken: ZERO_ADDRESS,
+          payToken: this.wETH.address,
           pricePerItem,
         })
       });
@@ -687,7 +711,7 @@ contract('Marketplace interacting with MockERC721 NFT contract', async function 
     it('reverts when offer has already been created', async function () {
       await successfullCreateOffer.call(this, this.payToken.address);
       await expectRevert(
-        this.marketplace.createOffer(
+        this.marketplace.methods['createOffer(address,uint256,address,uint256,uint256,uint256)'](
           this.nft.address,
           this.tokenId1,
           this.payToken.address,

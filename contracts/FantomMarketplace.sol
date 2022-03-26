@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "./library/ERC20WrappableSupport.sol";
 
 interface IFantomAddressRegistry {
     function artion() external view returns (address);
@@ -68,7 +69,11 @@ interface IFantomPriceFeed {
     function getPrice(address) external view returns (int256, uint8);
 }
 
-contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract FantomMarketplace is
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    ERC20WrappableSupport
+{
     using SafeMath for uint256;
     using AddressUpgradeable for address payable;
     using SafeERC20 for IERC20;
@@ -240,6 +245,15 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         _;
     }
 
+    modifier supportedNFTContract(address _nftAddress) {
+        require(
+            IERC165(_nftAddress).supportsInterface(INTERFACE_ID_ERC721) ||
+                IERC165(_nftAddress).supportsInterface(INTERFACE_ID_ERC1155),
+            "invalid nft address"
+        );
+        _;
+    }
+
     /// v1.2 Additional tweaks
     event NFTRoyaltySet(
         address by,
@@ -255,6 +269,8 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         address feeRecipient,
         uint16 royalty
     );
+
+    address payable public wToken;
 
     /// @notice Contract initializer
     function initialize(address payable _feeRecipient, uint16 _platformFee)
@@ -375,7 +391,7 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     ) private returns (bool) {
         if (_payToken == address(0)) {
             // payment with native token
-            (bool succeeded, ) = payable(msg.sender).call{value: amount}("");
+            (bool succeeded, ) = payable(recipient).call{value: amount}("");
             return succeeded;
         } else {
             // payment with ERC20
@@ -447,10 +463,9 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         if (minter != address(0) && royalty != 0) {
             uint256 royaltyFee = price.sub(feeAmount).mul(royalty).div(10000);
 
-            IERC20(_payToken).safeTransferFrom(
-                _msgSender(),
-                minter,
-                royaltyFee
+            require(
+                _pay(_payToken, minter, royaltyFee),
+                "failed to pay royalty"
             );
 
             feeAmount = feeAmount.add(royaltyFee);
@@ -462,20 +477,18 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
                     10000
                 );
 
-                IERC20(_payToken).safeTransferFrom(
-                    _msgSender(),
-                    minter,
-                    royaltyFee
+                require(
+                    _pay(_payToken, minter, royaltyFee),
+                    "failed to pay royalty"
                 );
 
                 feeAmount = feeAmount.add(royaltyFee);
             }
         }
 
-        IERC20(_payToken).safeTransferFrom(
-            _msgSender(),
-            _owner,
-            price.sub(feeAmount)
+        require(
+            _pay(_payToken, _owner, price.sub(feeAmount)),
+            "failed to pay seller"
         );
 
         // Transfer NFT to buyer
@@ -510,27 +523,14 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         delete (listings[_nftAddress][_tokenId][_owner]);
     }
 
-    /// @notice Method for offering item
-    /// @param _nftAddress NFT contract address
-    /// @param _tokenId TokenId
-    /// @param _payToken Paying token
-    /// @param _quantity Quantity of items
-    /// @param _pricePerItem Price per item
-    /// @param _deadline Offer expiration
-    function createOffer(
+    function _createOffer(
         address _nftAddress,
         uint256 _tokenId,
         IERC20 _payToken,
         uint256 _quantity,
         uint256 _pricePerItem,
         uint256 _deadline
-    ) external offerNotExists(_nftAddress, _tokenId, _msgSender()) {
-        require(
-            IERC165(_nftAddress).supportsInterface(INTERFACE_ID_ERC721) ||
-                IERC165(_nftAddress).supportsInterface(INTERFACE_ID_ERC1155),
-            "invalid nft address"
-        );
-
+    ) private {
         IFantomAuction auction = IFantomAuction(addressRegistry.auction());
 
         (, , , uint256 startTime, , bool resulted) = auction.auctions(
@@ -561,6 +561,64 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
             _quantity,
             address(_payToken),
             _pricePerItem,
+            _deadline
+        );
+    }
+
+    /// @notice Method for offering item
+    /// @param _nftAddress NFT contract address
+    /// @param _tokenId TokenId
+    /// @param _payToken Paying token
+    /// @param _quantity Quantity of items
+    /// @param _pricePerItem Price per item
+    /// @param _deadline Offer expiration
+    function createOffer(
+        address _nftAddress,
+        uint256 _tokenId,
+        IERC20 _payToken,
+        uint256 _quantity,
+        uint256 _pricePerItem,
+        uint256 _deadline
+    )
+        external
+        nonReentrant
+        offerNotExists(_nftAddress, _tokenId, _msgSender())
+        supportedNFTContract(_nftAddress)
+    {
+        _createOffer(
+            _nftAddress,
+            _tokenId,
+            _payToken,
+            _quantity,
+            _pricePerItem,
+            _deadline
+        );
+    }
+
+    /// @notice Method for offering item
+    /// @param _nftAddress NFT contract address
+    /// @param _tokenId TokenId
+    /// @param _quantity Quantity of items
+    /// @param _deadline Offer expiration
+    function createOffer(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _quantity,
+        uint256 _deadline
+    )
+        external
+        payable
+        nonReentrant
+        offerNotExists(_nftAddress, _tokenId, _msgSender())
+        supportedNFTContract(_nftAddress)
+        withWrap(wToken)
+    {
+        _createOffer(
+            _nftAddress,
+            _tokenId,
+            IERC20(wToken),
+            _quantity,
+            msg.value.div(_quantity),
             _deadline
         );
     }
@@ -882,5 +940,9 @@ contract FantomMarketplace is OwnableUpgradeable, ReentrancyGuardUpgradeable {
 
         delete (listings[_nftAddress][_tokenId][_owner]);
         emit ItemCanceled(_owner, _nftAddress, _tokenId);
+    }
+
+    function setWToken(address _wToken) public onlyOwner {
+        wToken = payable(_wToken);
     }
 }

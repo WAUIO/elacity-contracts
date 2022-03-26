@@ -4,6 +4,7 @@ const {
 } = require('@openzeppelin/test-helpers');
 
 const PayToken = artifacts.require('MockERC20');
+const WrappedToken = artifacts.require('WETH9');
 const FantomTokenRegistry = artifacts.require('FantomTokenRegistry');
 const FantomAddressRegistry = artifacts.require('FantomAddressRegistry');
 const PriceFeed = artifacts.require('FantomPriceFeed');
@@ -17,6 +18,8 @@ const FantomArtFactory = artifacts.require('FantomArtFactory');
 const FantomArtFactoryPrivate = artifacts.require('FantomArtFactoryPrivate');
 const FantomNFTFactory = artifacts.require('FantomNFTFactory');
 const FantomNFTFactoryPrivate = artifacts.require('FantomNFTFactoryPrivate');
+
+const TestWrap = artifacts.require('TestWrap');
 
 
 async function prepareTokenBy({ owner, buyer, feeRecipient }, tokenSupply, pricePerItem) {
@@ -33,6 +36,9 @@ async function prepareTokenBy({ owner, buyer, feeRecipient }, tokenSupply, price
     tokenSupply
   );
 
+  // create the wrapped token wETH
+  this.wETH = await WrappedToken.new();
+
   this.addressRegistry = await FantomAddressRegistry.deployed();
   this.tokenRegistry = await FantomTokenRegistry.deployed();
 
@@ -41,6 +47,7 @@ async function prepareTokenBy({ owner, buyer, feeRecipient }, tokenSupply, price
 
   // register the ERC20 token into token registry contract
   await this.tokenRegistry.add(this.payToken.address, { from: owner });
+  await this.tokenRegistry.add(this.wETH.address, { from: owner });
 
   this.priceFeed = await PriceFeed.new(
     this.addressRegistry.address,
@@ -57,6 +64,7 @@ async function prepareTokenBy({ owner, buyer, feeRecipient }, tokenSupply, price
     '20',
     { from: owner }
   );
+  await this.marketplace.setWToken(this.wETH.address);
 
   await this.addressRegistry.updateMarketplace(this.marketplace.address, { from: owner });
   await this.marketplace.updateAddressRegistry(
@@ -112,6 +120,10 @@ async function prepareTokenBy({ owner, buyer, feeRecipient }, tokenSupply, price
 
   // console.log('> ERC20 payToken overall test will be:', this.payToken.address)
   // console.log('--------------------------------------');
+  this.wrappable = await TestWrap.new();
+  this.wrappable.setWToken(
+    this.wETH.address
+  )
 }
 
 async function prepareContracts(owner, feeRecipient, platformFee) {
