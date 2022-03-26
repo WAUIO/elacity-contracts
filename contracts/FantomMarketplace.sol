@@ -436,13 +436,21 @@ contract FantomMarketplace is
         validListing(_nftAddress, _tokenId, _owner)
     {
         Listing memory listedItem = listings[_nftAddress][_tokenId][_owner];
-        require(listedItem.payToken == address(0), "invalid pay token");
+        require(
+            listedItem.payToken == address(0) || listedItem.payToken == wToken,
+            "invalid pay token"
+        );
         require(
             msg.value >= listedItem.pricePerItem.mul(listedItem.quantity),
             "insufficient balance"
         );
 
-        _buyItem(_nftAddress, _tokenId, address(0), _owner);
+        if (listedItem.payToken == wToken) {
+            require(_bundleWrap(wToken), "failed to swap");
+            _buyItem(_nftAddress, _tokenId, wToken, _owner);
+        } else {
+            _buyItem(_nftAddress, _tokenId, address(0), _owner);
+        }
     }
 
     function _buyItem(
