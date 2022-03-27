@@ -79,4 +79,6 @@ contract ERC20WrappableSupport is Revertable {
 
         return withdrawn;
     }
+
+    receive() external payable {}
 }
