@@ -77,8 +77,8 @@ module.exports = {
         return new HDWalletProvider(secret, `wss://ropsten.infura.io/ws/v3/26f4a46701dd4819a4e2cda821dc8996`)
       },
       network_id: 3,       // Ropsten's id
-      gas: 6700000,        // Ropsten has a lower block limit than mainnet
-      gasPrice: 100 * 1000000000, // 100 Gwei
+      // gas: 6700000,        // Ropsten has a lower block limit than mainnet
+      // gasPrice: 10 * 1000000000, // 10 Gwei
       confirmations: 0,    // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 60,  // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: true,     // Skip dry run before migrations? (default: false for public nets )
