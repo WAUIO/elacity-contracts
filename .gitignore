@@ -10,3 +10,5 @@ data/
 .secret
 .secret.*
 .openzeppelin/.session
+
+.deps/

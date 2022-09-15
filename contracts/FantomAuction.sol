@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -189,6 +190,17 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         _;
     }
 
+    // updates from 1.3
+    mapping(address => bool) public isAggregator;
+
+    modifier onlyAggregator() {
+        require(
+            isAggregator[_msgSender()],
+            "restricted to aggregator contract"
+        );
+        _;
+    }
+
     /// @notice Contract initializer
     function initialize(
         address payable _platformFeeRecipient,
@@ -228,25 +240,8 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         bool minBidReserve,
         uint256 _endTimestamp
     ) external whenNotPaused {
-        // Ensure this contract is approved to move the token
-        require(
-            IERC721(_nftAddress).ownerOf(_tokenId) == _msgSender() &&
-                IERC721(_nftAddress).isApprovedForAll(
-                    _msgSender(),
-                    address(this)
-                ),
-            "not owner and or contract not approved"
-        );
-
-        require(
-            _payToken == address(0) ||
-                (addressRegistry.tokenRegistry() != address(0) &&
-                    IFantomTokenRegistry(addressRegistry.tokenRegistry())
-                        .enabled(_payToken)),
-            "invalid pay token"
-        );
-
-        _createAuction(
+        _createAuctionBy(
+            _msgSender(),
             _nftAddress,
             _tokenId,
             _payToken,
@@ -652,20 +647,10 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 _tokenId,
         uint256 _reservePrice
     ) external {
-        Auction storage auction = auctions[_nftAddress][_tokenId];
-
-        require(_msgSender() == auction.owner, "sender must be item owner");
-
-        // Ensure auction not already resulted
-        require(!auction.resulted, "auction already resulted");
-
-        require(auction.endTime > 0, "no auction exists");
-
-        auction.reservePrice = _reservePrice;
-        emit UpdateAuctionReservePrice(
+        _updateAuctionReservePriceBy(
+            _msgSender(),
             _nftAddress,
             _tokenId,
-            auction.payToken,
             _reservePrice
         );
     }
@@ -683,26 +668,12 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 _tokenId,
         uint256 _startTime
     ) external {
-        Auction storage auction = auctions[_nftAddress][_tokenId];
-
-        require(_msgSender() == auction.owner, "sender must be owner");
-
-        require(_startTime > 0, "invalid start time");
-
-        require(auction.startTime + 60 > _getNow(), "auction already started");
-
-        require(
-            _startTime + 300 < auction.endTime,
-            "start time should be less than end time (by 5 minutes)"
+        _updateAuctionStartTimeBy(
+            _msgSender(),
+            _nftAddress,
+            _tokenId,
+            _startTime
         );
-
-        // Ensure auction not already resulted
-        require(!auction.resulted, "auction already resulted");
-
-        require(auction.endTime > 0, "no auction exists");
-
-        auction.startTime = _startTime;
-        emit UpdateAuctionStartTime(_nftAddress, _tokenId, _startTime);
     }
 
     /**
@@ -718,25 +689,12 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 _tokenId,
         uint256 _endTimestamp
     ) external {
-        Auction storage auction = auctions[_nftAddress][_tokenId];
-
-        require(_msgSender() == auction.owner, "sender must be owner");
-
-        // Check the auction has not ended
-        require(_getNow() < auction.endTime, "auction already ended");
-
-        require(auction.endTime > 0, "no auction exists");
-        require(
-            auction.startTime < _endTimestamp,
-            "end time must be greater than start"
+        _updateAuctionEndTimeBy(
+            _msgSender(),
+            _nftAddress,
+            _tokenId,
+            _endTimestamp
         );
-        require(
-            _endTimestamp > _getNow() + 300,
-            "auction should end after 5 minutes"
-        );
-
-        auction.endTime = _endTimestamp;
-        emit UpdateAuctionEndTime(_nftAddress, _tokenId, _endTimestamp);
     }
 
     /**
@@ -831,57 +789,24 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         return block.timestamp;
     }
 
+    /* solhint-disable */
     /**
-     @notice Private method doing the heavy lifting of creating an auction
-     @param _nftAddress ERC 721 Address
-     @param _tokenId Token ID of the NFT being auctioned
-     @param _payToken Paying token
-     @param _reservePrice Item cannot be sold for less than this or minBidIncrement, whichever is higher
-     @param _startTimestamp Unix epoch in seconds for the auction start time
-     @param _endTimestamp Unix epoch in seconds for the auction end time.
+     @notice deprecated since 1.3, use _createAuctionBy instead
+     @notice ---------------------------------------------------
      */
     function _createAuction(
-        address _nftAddress,
-        uint256 _tokenId,
-        address _payToken,
-        uint256 _reservePrice,
-        uint256 _startTimestamp,
-        bool minBidReserve,
-        uint256 _endTimestamp
-    ) private {
-        // Ensure a token cannot be re-listed if previously successfully sold
-        require(
-            auctions[_nftAddress][_tokenId].endTime == 0,
-            "auction already started"
-        );
-
-        // Check end time not before start time and that end is in the future
-        require(
-            _endTimestamp >= _startTimestamp + 300,
-            "end time must be greater than start (by 5 minutes)"
-        );
-
-        require(_startTimestamp > _getNow(), "invalid start time");
-
-        uint256 minimumBid = 0;
-
-        if (minBidReserve) {
-            minimumBid = _reservePrice;
-        }
-
-        // Setup the auction
-        auctions[_nftAddress][_tokenId] = Auction({
-            owner: _msgSender(),
-            payToken: _payToken,
-            minBid: minimumBid,
-            reservePrice: _reservePrice,
-            startTime: _startTimestamp,
-            endTime: _endTimestamp,
-            resulted: false
-        });
-
-        emit AuctionCreated(_nftAddress, _tokenId, _payToken);
+        address, /*_nftAddress*/
+        uint256, /*_tokenId*/
+        address, /*_payToken*/
+        uint256, /*_reservePrice*/
+        uint256, /*_startTimestamp*/
+        bool, /*minBidReserve*/
+        uint256 /*_endTimestamp*/
+    ) private pure {
+        revert("method deprecated since 1.3 -> use _createAuctionBy instead");
     }
+
+    /* solhint-enable */
 
     function _cancelAuction(address _nftAddress, uint256 _tokenId) private {
         // refund existing top bidder if found
@@ -948,4 +873,216 @@ contract FantomAuction is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 balance = token.balanceOf(address(this));
         require(token.transfer(_msgSender(), balance), "Transfer failed");
     }
+
+    // START AGG: Updates to address aggregated actions (bundling in one tx) -----
+    function acknowledgeAggregator(address addr) external onlyOwner {
+        isAggregator[addr] = true;
+    }
+
+    /**
+     @notice Private method doing the heavy lifting of creating an auction
+     @param _by Origin of the action, generally the user
+     @param _nftAddress ERC 721 Address
+     @param _tokenId Token ID of the NFT being auctioned
+     @param _payToken Paying token
+     @param _reservePrice Item cannot be sold for less than this or minBidIncrement, whichever is higher
+     @param _startTimestamp Unix epoch in seconds for the auction start time
+     @param _endTimestamp Unix epoch in seconds for the auction end time.
+    */
+    function _createAuctionBy(
+        address _by,
+        address _nftAddress,
+        uint256 _tokenId,
+        address _payToken,
+        uint256 _reservePrice,
+        uint256 _startTimestamp,
+        bool minBidReserve,
+        uint256 _endTimestamp
+    ) private {
+        // Ensure this contract is approved to move the token
+        require(
+            IERC721(_nftAddress).ownerOf(_tokenId) == _by &&
+                IERC721(_nftAddress).isApprovedForAll(_by, address(this)),
+            "not owner and or contract not approved"
+        );
+
+        require(
+            _payToken == address(0) ||
+                (addressRegistry.tokenRegistry() != address(0) &&
+                    IFantomTokenRegistry(addressRegistry.tokenRegistry())
+                        .enabled(_payToken)),
+            "invalid pay token"
+        );
+
+        // Ensure a token cannot be re-listed if previously successfully sold
+        require(
+            auctions[_nftAddress][_tokenId].endTime == 0,
+            "auction already started"
+        );
+
+        // Check end time not before start time and that end is in the future
+        require(
+            _endTimestamp >= _startTimestamp + 300,
+            "end time must be greater than start (by 5 minutes)"
+        );
+
+        require(_startTimestamp > _getNow(), "invalid start time");
+
+        uint256 minimumBid = 0;
+
+        if (minBidReserve) {
+            minimumBid = _reservePrice;
+        }
+
+        // Setup the auction
+        auctions[_nftAddress][_tokenId] = Auction({
+            owner: _by,
+            payToken: _payToken,
+            minBid: minimumBid,
+            reservePrice: _reservePrice,
+            startTime: _startTimestamp,
+            endTime: _endTimestamp,
+            resulted: false
+        });
+
+        emit AuctionCreated(_nftAddress, _tokenId, _payToken);
+    }
+
+    /**
+    @notice Create auction but only from Aggregator
+    */
+    function pipeCreateAuction(
+        address _nftAddress,
+        uint256 _tokenId,
+        address _payToken,
+        uint256 _reservePrice,
+        uint256 _startTimestamp,
+        bool minBidReserve,
+        uint256 _endTimestamp
+    ) external whenNotPaused onlyAggregator {
+        _createAuctionBy(
+            tx.origin,
+            _nftAddress,
+            _tokenId,
+            _payToken,
+            _reservePrice,
+            _startTimestamp,
+            minBidReserve,
+            _endTimestamp
+        );
+    }
+
+    function _updateAuctionReservePriceBy(
+        address _by,
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _reservePrice
+    ) private {
+        Auction storage auction = auctions[_nftAddress][_tokenId];
+
+        require(_by == auction.owner, "sender must be item owner");
+
+        // Ensure auction not already resulted
+        require(!auction.resulted, "auction already resulted");
+
+        require(auction.endTime > 0, "no auction exists");
+
+        auction.reservePrice = _reservePrice;
+        emit UpdateAuctionReservePrice(
+            _nftAddress,
+            _tokenId,
+            auction.payToken,
+            _reservePrice
+        );
+    }
+
+    function pipeUpdateAuctionReservePrice(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _reservePrice
+    ) external onlyAggregator {
+        _updateAuctionReservePriceBy(
+            tx.origin,
+            _nftAddress,
+            _tokenId,
+            _reservePrice
+        );
+    }
+
+    function _updateAuctionStartTimeBy(
+        address _by,
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _startTime
+    ) private {
+        Auction storage auction = auctions[_nftAddress][_tokenId];
+
+        require(_by == auction.owner, "sender must be owner");
+
+        require(_startTime > 0, "invalid start time");
+
+        require(auction.startTime + 60 > _getNow(), "auction already started");
+
+        require(
+            _startTime + 300 < auction.endTime,
+            "start time should be less than end time (by 5 minutes)"
+        );
+
+        // Ensure auction not already resulted
+        require(!auction.resulted, "auction already resulted");
+
+        require(auction.endTime > 0, "no auction exists");
+
+        auction.startTime = _startTime;
+        emit UpdateAuctionStartTime(_nftAddress, _tokenId, _startTime);
+    }
+
+    function pipeUpdateAuctionStartTime(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _startTime
+    ) external onlyAggregator {
+        _updateAuctionStartTimeBy(tx.origin, _nftAddress, _tokenId, _startTime);
+    }
+
+    function _updateAuctionEndTimeBy(
+        address _by,
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _endTimestamp
+    ) private {
+        Auction storage auction = auctions[_nftAddress][_tokenId];
+
+        require(_by == auction.owner, "sender must be owner");
+
+        // Check the auction has not ended
+        require(_getNow() < auction.endTime, "auction already ended");
+
+        require(auction.endTime > 0, "no auction exists");
+        require(
+            auction.startTime < _endTimestamp,
+            "end time must be greater than start"
+        );
+        require(
+            _endTimestamp > _getNow() + 300,
+            "auction should end after 5 minutes"
+        );
+
+        auction.endTime = _endTimestamp;
+        emit UpdateAuctionEndTime(_nftAddress, _tokenId, _endTimestamp);
+    }
+
+    function pipeUpdateAuctionEndTime(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _endTimestamp
+    ) external onlyAggregator {
+        _updateAuctionEndTimeBy(
+            tx.origin,
+            _nftAddress,
+            _tokenId,
+            _endTimestamp
+        );
+    }
+    // END AGG -----
 }

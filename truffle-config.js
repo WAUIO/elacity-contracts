@@ -19,8 +19,6 @@
  */
 
 const HDWalletProvider = require('@truffle/hdwallet-provider');
-const PrivateKeyProvider = require("truffle-privatekey-provider");
-//
 const fs = require('fs');
 const path = require('path');
 const secret = fs.readFileSync(".secret").toString().trim();
@@ -28,7 +26,12 @@ require('dotenv').config({ path: path.resolve('.env') });
 
 module.exports = {
   plugins: [
-    'truffle-source-verify'
+    // blockscoot-based: elastos
+    // 'truffle-source-verify',
+
+    // etherscan-based
+    'truffle-plugin-verify',
+    'truffle-contract-size'
   ],
   api_keys: {
     etherscan: process.env.ETHSCAN_API_KEY,
@@ -57,6 +60,8 @@ module.exports = {
       port: 8545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
       from: '0xaB5028bDBB0826AD6F1885478E421dB677b0001A',
+      gas: 670000,
+      gasPrice: 1 * 1000000000,
     },
     ganache: {
       host: "127.0.0.1",
@@ -72,14 +77,25 @@ module.exports = {
     ropsten: {
       provider: () => {
         if (secret.match(/^0x/ig)) {
-          return new PrivateKeyProvider(secret, "https://ropsten.infura.io/v3/26f4a46701dd4819a4e2cda821dc8996");
+          return new HDWalletProvider({
+            privateKeys: [
+              secret
+            ],
+            providerOrUrl: 'https://ropsten.infura.io/v3/26f4a46701dd4819a4e2cda821dc8996',
+          })
         }
-        return new HDWalletProvider(secret, `wss://ropsten.infura.io/ws/v3/26f4a46701dd4819a4e2cda821dc8996`)
+
+        return new HDWalletProvider({
+          mnemonic: {
+            phrase: secret
+          },
+          providerOrUrl: 'https://ropsten.infura.io/v3/26f4a46701dd4819a4e2cda821dc8996',
+        })
       },
       network_id: 3,       // Ropsten's id
       // gas: 6700000,        // Ropsten has a lower block limit than mainnet
       // gasPrice: 10 * 1000000000, // 10 Gwei
-      confirmations: 0,    // # of confs to wait between deployments. (default: 0)
+      confirmations: 1,    // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 60,  // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: true,     // Skip dry run before migrations? (default: false for public nets )
       networkCheckTimeout: 100000, // Avoid ESOCKETTIMEDOUT error for slow networks. COmment if you have quick network
@@ -89,7 +105,12 @@ module.exports = {
     elastos: {
       provider: () => {
         if (secret.match(/^0x/ig)) {
-          return new PrivateKeyProvider(secret, "https://api.elastos.io/eth");
+          return new HDWalletProvider({
+            privateKeys: [
+              secret
+            ],
+            providerOrUrl: 'https://api.elastos.io/eth',
+          })
         }
 
         return new HDWalletProvider({
@@ -135,7 +156,7 @@ module.exports = {
           enabled: true,
           runs: 200
         },
-        // evmVersion: "byzantium"
+        evmVersion: "byzantium"
       }
     }
   },
@@ -159,5 +180,12 @@ module.exports = {
   //     directory: ".db"
   //   }
   // }
+  // }
+
+  // paths: {
+  //   sources: "./contracts",
+  //   tests: "./test",
+  //   cache: "./cache",
+  //   artifacts: "./artifacts"
   // }
 };

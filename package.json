@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "contract-size": "truffle run contract-size",
     "migrate-initial": "truffle migrate --reset --f 1 --to 12 --network elastos",
     "migrate-initial-dev": "truffle migrate --reset --f 1 --to 12 --network ropsten",
     "migrate-update": "truffle migrate --reset --f 13 --network elastos",
@@ -40,7 +41,8 @@
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",
     "solidity-coverage": "^0.7.16",
-    "truffle-privatekey-provider": "^1.5.0",
+    "truffle-contract-size": "^2.0.1",
+    "truffle-plugin-verify": "^0.5.28",
     "truffle-source-verify": "git+ssh://git@github.com/open-zhy/truffle-source-verify.git"
   }
 }

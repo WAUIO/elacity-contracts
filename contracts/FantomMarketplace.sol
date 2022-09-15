@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -272,6 +273,17 @@ contract FantomMarketplace is
 
     address payable public wToken;
 
+    // updates from 1.3
+    mapping(address => bool) public isAggregator;
+
+    modifier onlyAggregator() {
+        require(
+            isAggregator[_msgSender()],
+            "restricted to aggregator contract"
+        );
+        _;
+    }
+
     /// @notice Contract initializer
     function initialize(address payable _feeRecipient, uint16 _platformFee)
         public
@@ -298,39 +310,8 @@ contract FantomMarketplace is
         address _payToken,
         uint256 _pricePerItem,
         uint256 _startingTime
-    ) external notListed(_nftAddress, _tokenId, _msgSender()) {
-        if (IERC165(_nftAddress).supportsInterface(INTERFACE_ID_ERC721)) {
-            IERC721 nft = IERC721(_nftAddress);
-            require(nft.ownerOf(_tokenId) == _msgSender(), "not owning item");
-            require(
-                nft.isApprovedForAll(_msgSender(), address(this)),
-                "item not approved"
-            );
-        } else if (
-            IERC165(_nftAddress).supportsInterface(INTERFACE_ID_ERC1155)
-        ) {
-            IERC1155 nft = IERC1155(_nftAddress);
-            require(
-                nft.balanceOf(_msgSender(), _tokenId) >= _quantity,
-                "must hold enough nfts"
-            );
-            require(
-                nft.isApprovedForAll(_msgSender(), address(this)),
-                "item not approved"
-            );
-        } else {
-            revert("invalid nft address");
-        }
-
-        _validPayToken(_payToken);
-
-        listings[_nftAddress][_tokenId][_msgSender()] = Listing(
-            _quantity,
-            _payToken,
-            _pricePerItem,
-            _startingTime
-        );
-        emit ItemListed(
+    ) external {
+        _listItemBy(
             _msgSender(),
             _nftAddress,
             _tokenId,
@@ -729,19 +710,7 @@ contract FantomMarketplace is
         uint256 _tokenId,
         uint16 _royalty
     ) external {
-        require(_royalty <= 2000, "invalid royalty");
-        require(_isFantomNFT(_nftAddress), "invalid nft address");
-
-        _validOwner(_nftAddress, _tokenId, _msgSender(), 1);
-
-        require(
-            minters[_nftAddress][_tokenId] == address(0),
-            "royalty already set"
-        );
-        minters[_nftAddress][_tokenId] = _msgSender();
-        royalties[_nftAddress][_tokenId] = _royalty;
-
-        emit NFTRoyaltySet(_msgSender(), _nftAddress, _tokenId, _royalty);
+        _registerRoyaltyBy(_msgSender(), _nftAddress, _tokenId, _royalty);
     }
 
     /// @notice Method for updating royalty
@@ -953,4 +922,109 @@ contract FantomMarketplace is
     function setWToken(address _wToken) public onlyOwner {
         wToken = payable(_wToken);
     }
+
+    // START AGG: Updates to address aggregated actions (bundling in one tx) -----
+    function acknowledgeAggregator(address addr) external onlyOwner {
+        isAggregator[addr] = true;
+    }
+
+    function _listItemBy(
+        address _by,
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _quantity,
+        address _payToken,
+        uint256 _pricePerItem,
+        uint256 _startingTime
+    ) internal notListed(_nftAddress, _tokenId, _by) {
+        if (IERC165(_nftAddress).supportsInterface(INTERFACE_ID_ERC721)) {
+            IERC721 nft = IERC721(_nftAddress);
+            require(nft.ownerOf(_tokenId) == _by, "not owning item");
+            require(
+                nft.isApprovedForAll(_by, address(this)),
+                "item not approved"
+            );
+        } else if (
+            IERC165(_nftAddress).supportsInterface(INTERFACE_ID_ERC1155)
+        ) {
+            IERC1155 nft = IERC1155(_nftAddress);
+            require(
+                nft.balanceOf(_by, _tokenId) >= _quantity,
+                "must hold enough nfts"
+            );
+            require(
+                nft.isApprovedForAll(_by, address(this)),
+                "item not approved"
+            );
+        } else {
+            revert("invalid nft address");
+        }
+
+        _validPayToken(_payToken);
+
+        listings[_nftAddress][_tokenId][_by] = Listing(
+            _quantity,
+            _payToken,
+            _pricePerItem,
+            _startingTime
+        );
+        emit ItemListed(
+            _by,
+            _nftAddress,
+            _tokenId,
+            _quantity,
+            _payToken,
+            _pricePerItem,
+            _startingTime
+        );
+    }
+
+    function pipeListItem(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _quantity,
+        address _payToken,
+        uint256 _pricePerItem,
+        uint256 _startingTime
+    ) external onlyAggregator {
+        _listItemBy(
+            tx.origin,
+            _nftAddress,
+            _tokenId,
+            _quantity,
+            _payToken,
+            _pricePerItem,
+            _startingTime
+        );
+    }
+
+    function _registerRoyaltyBy(
+        address _by,
+        address _nftAddress,
+        uint256 _tokenId,
+        uint16 _royalty
+    ) private {
+        require(_royalty <= 2000, "invalid royalty");
+        require(_isFantomNFT(_nftAddress), "invalid nft address");
+
+        _validOwner(_nftAddress, _tokenId, _by, 1);
+
+        require(
+            minters[_nftAddress][_tokenId] == address(0),
+            "royalty already set"
+        );
+        minters[_nftAddress][_tokenId] = _by;
+        royalties[_nftAddress][_tokenId] = _royalty;
+
+        emit NFTRoyaltySet(_by, _nftAddress, _tokenId, _royalty);
+    }
+
+    function pipeRegisterRoyalty(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint16 _royalty
+    ) external onlyAggregator {
+        _registerRoyaltyBy(tx.origin, _nftAddress, _tokenId, _royalty);
+    }
+    // END AGG -----
 }

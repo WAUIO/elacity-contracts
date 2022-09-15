@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity >=0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -131,6 +132,17 @@ contract FantomBundleMarketplace is
             addressRegistry.auction() == _msgSender() ||
                 addressRegistry.marketplace() == _msgSender(),
             "sender must be auction or marketplace"
+        );
+        _;
+    }
+
+    // updates from 1.3
+    mapping(address => bool) public isAggregator;
+
+    modifier onlyAggregator() {
+        require(
+            isAggregator[_msgSender()],
+            "restricted to aggregator contract"
         );
         _;
     }
@@ -692,5 +704,10 @@ contract FantomBundleMarketplace is
         returns (bytes32)
     {
         return keccak256(abi.encodePacked(_bundleID));
+    }
+
+    // START AGG: Updates to address aggregated actions (bundling in one tx) -----
+    function acknowledgeAggregator(address addr) external onlyOwner {
+        isAggregator[addr] = true;
     }
 }
