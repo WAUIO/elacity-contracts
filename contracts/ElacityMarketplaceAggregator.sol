@@ -172,9 +172,9 @@ contract ElacityMarketplaceAggregator is
         );
         require(minted, "Failed to mint token");
 
-        // according how our NFT contracts are setup
-        // new tokenID could be represented by the totalSupply
-        tokenId = INFTContract(_nftAddress).totalSupply();
+        // no need it here anymore as there is no way to get it accurately
+        // instead, it should be set in calldata of the pipeline calls
+        // tokenId = INFTContract(_nftAddress).totalSupply();
 
         // now we will setup pipeline according to request
         // 1. register royalty
@@ -190,12 +190,17 @@ contract ElacityMarketplaceAggregator is
                     calls[i].target == addressRegistry.marketplace()
                 ) {
                     // 1. register royalty
-                    (address nftAddress, , uint16 royaltyValue) = abi.decode(
-                        calls[i].data[4:],
-                        (address, uint256, uint16)
-                    );
+                    (
+                        address nftAddress,
+                        uint256 _tokenId,
+                        uint16 royaltyValue
+                    ) = abi.decode(
+                            calls[i].data[4:],
+                            (address, uint256, uint16)
+                        );
                     if (royaltyValue > 0) {
                         // only process royalty registration when its value is greater than 0
+                        tokenId = _tokenId;
                         IMarketplace(addressRegistry.marketplace())
                             .pipeRegisterRoyalty(
                                 nftAddress,
@@ -215,7 +220,7 @@ contract ElacityMarketplaceAggregator is
                     );
                     (
                         address nftAddress,
-                        ,
+                        uint256 _tokenId,
                         address payToken,
                         uint256 pricePerItem,
                         uint256 startTime,
@@ -233,6 +238,7 @@ contract ElacityMarketplaceAggregator is
                                 uint256
                             )
                         );
+                    tokenId = _tokenId;
                     IAuction(addressRegistry.auction()).pipeCreateAuction(
                         nftAddress,
                         tokenId,
@@ -254,7 +260,7 @@ contract ElacityMarketplaceAggregator is
                     );
                     (
                         address nftAddress,
-                        ,
+                        uint256 _tokenId,
                         uint256 qt,
                         address payToken,
                         uint256 pricePerItem,
@@ -270,6 +276,7 @@ contract ElacityMarketplaceAggregator is
                                 uint256
                             )
                         );
+                    tokenId = _tokenId;
                     IMarketplace(addressRegistry.marketplace()).pipeListItem(
                         nftAddress,
                         tokenId,
