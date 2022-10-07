@@ -9,7 +9,7 @@ module.exports = async function (deployer) {
     ArtTradable,
     'FantomArt',
     'FART',
-    '200000000000000000',
+    '20000000000000000',
     configs.TREASURY_ADDRESS,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE
@@ -22,7 +22,7 @@ module.exports = async function (deployer) {
     ArtTradablePrivate,
     'FantomArt',
     'FART',
-    '200000000000000000',
+    '20000000000000000',
     configs.TREASURY_ADDRESS,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE

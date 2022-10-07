@@ -130,12 +130,33 @@ module.exports = {
       websockets: true
     },
 
-    // Useful for private networks
-    // private: {
-    // provider: () => new HDWalletProvider(mnemonic, `https://network.io`),
-    // network_id: 2111,   // This network is yours, in the cloud.
-    // production: true    // Treats this network as if it was a public net. (default: false)
-    // }
+    elatest: {
+      provider: () => {
+        if (secret.match(/^0x/ig)) {
+          return new HDWalletProvider({
+            privateKeys: [
+              secret
+            ],
+            providerOrUrl: 'https://api-testnet.trinity-tech.io/esc',
+          })
+        }
+
+        return new HDWalletProvider({
+          mnemonic: {
+            phrase: secret
+          },
+          providerOrUrl: 'https://api-testnet.trinity-tech.io/esc',
+        })
+      },
+      network_id: 21,       // Ropsten's id
+      gas: 6700000,        // Ropsten has a lower block limit than mainnet
+      gasPrice: 100 * 1000000000, // 100 Gwei
+      confirmations: 1,    // # of confs to wait between deployments. (default: 0)
+      timeoutBlocks: 60,  // # of blocks before a deployment times out  (minimum/default: 50)
+      skipDryRun: true,     // Skip dry run before migrations? (default: false for public nets )
+      networkCheckTimeout: 100000, // Avoid ESOCKETTIMEDOUT error for slow networks. COmment if you have quick network
+      websockets: true
+    },
   },
 
   // Set default mocha options here, use special reporters etc.

@@ -4,7 +4,7 @@ const FNFT = artifacts.require("Artion");
 
 module.exports = async function (deployer, network, account) {
   console.log('Treasury_address : ', configs.TREASURY_ADDRESS);
-  await deployer.deploy(FNFT, configs.TREASURY_ADDRESS, '200000000000000000');
+  await deployer.deploy(FNFT, configs.TREASURY_ADDRESS, '10000000000000000');
 
   const contract = await FNFT.deployed();
 

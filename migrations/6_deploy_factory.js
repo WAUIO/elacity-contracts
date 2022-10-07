@@ -10,9 +10,9 @@ module.exports = async function (deployer) {
     configs.AUCTION,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE,
-    '200000000000000000',
+    '20000000000000000',
     configs.TREASURY_ADDRESS,
-    '1000000000000000000'
+    '10000000000000000'
   );
   const factoryImpl = await Factory.deployed();
   console.log('FantomNFTFactory deployed to:', factoryImpl.address);
@@ -23,9 +23,9 @@ module.exports = async function (deployer) {
     configs.AUCTION,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE,
-    '200000000000000000',
+    '20000000000000000',
     configs.TREASURY_ADDRESS,
-    '1000000000000000000'
+    '10000000000000000'
   );
   const privateFactoryImpl = await PrivateFactory.deployed();
   console.log('FantomNFTFactoryPrivate deployed to:', privateFactoryImpl.address);

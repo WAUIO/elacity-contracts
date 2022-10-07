@@ -9,9 +9,9 @@ module.exports = async function (deployer) {
     Factory,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE,
-    '200000000000000000',
+    '20000000000000000',
     configs.TREASURY_ADDRESS,
-    '1000000000000000000'
+    '10000000000000000'
   );
   const FactoryImpl = await Factory.deployed();
   console.log('FantomArtFactory deployed to:', FactoryImpl.address);
@@ -21,9 +21,9 @@ module.exports = async function (deployer) {
     PrivateFactory,
     configs.MARKETPLACE,
     configs.BUNDLE_MARKETPLACE,
-    '200000000000000000',
+    '20000000000000000',
     configs.TREASURY_ADDRESS,
-    '1000000000000000000'
+    '10000000000000000'
   );
   const FactoryPrivateImpl = await PrivateFactory.deployed();
   console.log('FantomArtFactory deployed to:', FactoryPrivateImpl.address);
