@@ -26,11 +26,11 @@ require('dotenv').config({ path: path.resolve('.env') });
 
 module.exports = {
   plugins: [
-    // blockscoot-based: elastos
-    // 'truffle-source-verify',
+    // blockscoot-based: elastos, esc testnet
+    'truffle-source-verify',
 
     // etherscan-based
-    'truffle-plugin-verify',
+    // 'truffle-plugin-verify',
     'truffle-contract-size'
   ],
   api_keys: {

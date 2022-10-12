@@ -43,6 +43,6 @@
     "solidity-coverage": "^0.7.16",
     "truffle-contract-size": "^2.0.1",
     "truffle-plugin-verify": "^0.5.28",
-    "truffle-source-verify": "git+ssh://git@github.com/open-zhy/truffle-source-verify.git"
+    "truffle-source-verify": "github:open-zhy/truffle-source-verify"
   }
 }
