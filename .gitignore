@@ -12,3 +12,5 @@ data/
 .openzeppelin/.session
 
 .deps/
+
+*.flatten.sol

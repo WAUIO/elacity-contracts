@@ -163,14 +163,25 @@ contract ElacityMarketplaceAggregator is
         // verify _nftAddress is ERC721 contract and is supported in the platform
         require(_isValidNFTAddress(_nftAddress), "invalid NFT address");
 
-        (bool minted, ) = payable(_nftAddress).call{value: msg.value}(
+        (bool minted, bytes memory output) = payable(_nftAddress).call{
+            value: msg.value
+        }(
             abi.encodeWithSelector(
                 INFTContract(_nftAddress).mint.selector,
                 _msgSender(),
                 _tokenUri
             )
         );
-        require(minted, "Failed to mint token");
+        if (!minted) {
+            if (output.length > 0) {
+                assembly {
+                    let output_sz := mload(output)
+                    revert(add(32, output), output_sz)
+                }
+            } else {
+                revert("Failed to mint token");
+            }
+        }
 
         // no need it here anymore as there is no way to get it accurately
         // instead, it should be set in calldata of the pipeline calls
